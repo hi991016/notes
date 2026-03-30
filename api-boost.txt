@@ -1,0 +1,169 @@
+<script>
+// JS để fetch search results từ Boost API (sửa thành GET với query params)
+document.addEventListener('DOMContentLoaded', function() {
+  const query = '{{ terms }}'; // Từ Liquid, query từ URL (?q=)
+  console.log('Query:', query); // Log để check query
+
+  const shopDomain = 'my-basho.myshopify.com'; // Thay bằng domain store thực của bạn (từ suggest example)
+  console.log('Shop Domain:', shopDomain); // Log ra console để check (mở DevTools > Console)
+
+  if (query) {
+    // Xây dựng URL với params (tương tự suggest nhưng dùng /search cho full results)
+    const apiUrl = new URL('https://services.mybcapps.com/bc-sf-filter/search');
+    apiUrl.searchParams.append('shop', shopDomain);
+    apiUrl.searchParams.append('q', query);
+    {% comment %} apiUrl.searchParams.append('locale', 'en'); // Từ suggest, adjust nếu khác
+    apiUrl.searchParams.append('page', '1');
+    apiUrl.searchParams.append('limit', '20'); // Số products per page
+    apiUrl.searchParams.append('sort', 'relevance');
+    apiUrl.searchParams.append('fuzzy', 'true'); // Enable fuzzy search như suggest
+    apiUrl.searchParams.append('build_filter_tree', 'false'); // Không cần filter tree
+    apiUrl.searchParams.append('collection_scope', '0'); // 0 cho global search (không limit collection)
+    apiUrl.searchParams.append('t', Date.now()); // Timestamp để avoid cache, như suggest
+    apiUrl.searchParams.append('return_all_currency_fields', 'false'); // Từ suggest {% endcomment %}
+    // Add metafields-related nếu cần, nhưng app engine sẽ handle nếu configured
+    // Ví dụ: apiUrl.searchParams.append('include_metafields', 'true'); nếu docs support
+
+    fetch(apiUrl.toString(), {
+      method: 'GET', // Chỉ GET, no body
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('API Response:', data); // Log full response để debug (check data.products hoặc data.items)
+    })
+    .catch(error => {
+      console.error('Error fetching search results:', error);
+      console.log('Error details:', error.message); // Log error để check
+    });
+  }
+});
+</script>
+
+
+
+// ================== ver 2
+<!-- Paste vào cuối file templates/search.liquid -->
+<div id="search-results">Đang tải...</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const q = '{{ search.terms | escapejs }}';   // hoặc '{{ query | escapejs }}'
+  if (!q) return;
+
+  const shop = '{{ shop.permanent_domain }}';  // auto lấy đúng myshopify domain
+
+  fetch(`https://services.mybcapps.com/bc-sf-filter/search?shop=${shop}&q=${encodeURIComponent(q)}&limit=48&t=${Date.now()}`)
+    .then(r => r.json())
+    .then(data => {
+      const box = document.getElementById('search-results');
+      if (!data.products || data.products.length === 0) {
+        box.innerHTML = '<p>Không tìm thấy sản phẩm nào.</p>';
+        return;
+      }
+
+      // Render cực gọn
+      box.innerHTML = data.products.map(p => `
+        <div style="border:1px solid #ddd;padding:15px;margin:10px 0;">
+          <a href="/products/${p.handle}">
+            ${p.images_info?.[0]?.src ? `<img src="${p.images_info[0].src}" width="150"><br>` : ''}
+            <b>${p.title}</b><br>
+            Giá: $${(p.price_min/100).toFixed(2)}
+          </a>
+        </div>
+      `).join('');
+    })
+    .catch(() => document.getElementById('search-results').innerHTML = '<p>Lỗi tải kết quả.</p>');
+});
+</script>
+
+// ================ ver3
+{% assign search_query = search.terms | downcase %}
+
+{% if search_query != blank %}
+  <div class="search-results">
+    <h2>Kết quả: "{{ search.terms }}"</h2>
+    
+    {% assign found_count = 0 %}
+    
+    {% for product in collections.all.products limit: 250 %}
+      {% assign match = false %}
+      
+      {% comment %} Check title {% endcomment %}
+      {% assign title_lower = product.title | downcase %}
+      {% if title_lower contains search_query %}
+        {% assign match = true %}
+      {% endif %}
+      
+      {% comment %} Check description {% endcomment %}
+      {% assign desc_lower = product.description | strip_html | downcase %}
+      {% if desc_lower contains search_query %}
+        {% assign match = true %}
+      {% endif %}
+      
+      {% comment %} Check vendor {% endcomment %}
+      {% assign vendor_lower = product.vendor | downcase %}
+      {% if vendor_lower contains search_query %}
+        {% assign match = true %}
+      {% endif %}
+      
+      {% comment %} Check type {% endcomment %}
+      {% assign type_lower = product.type | downcase %}
+      {% if type_lower contains search_query %}
+        {% assign match = true %}
+      {% endif %}
+      
+      {% comment %} Check tags {% endcomment %}
+      {% for tag in product.tags %}
+        {% assign tag_lower = tag | downcase %}
+        {% if tag_lower contains search_query %}
+          {% assign match = true %}
+        {% endif %}
+      {% endfor %}
+      
+      {% comment %} Check variants {% endcomment %}
+      {% for variant in product.variants %}
+        {% assign variant_title_lower = variant.title | downcase %}
+        {% assign variant_sku_lower = variant.sku | downcase %}
+        {% if variant_title_lower contains search_query or variant_sku_lower contains search_query %}
+          {% assign match = true %}
+        {% endif %}
+      {% endfor %}
+      
+      {% comment %} Check metafields {% endcomment %}
+      {% assign meta_why_lower = product.metafields.custom.why.value | downcase %}
+      {% assign meta_please_lower = product.metafields.custom.please.value | downcase %}
+      {% if meta_why_lower contains search_query or meta_please_lower contains search_query %}
+        {% assign match = true %}
+      {% endif %}
+      
+      {% comment %} Hiển thị nếu match {% endcomment %}
+      {% if match %}
+        {% assign found_count = found_count | plus: 1 %}
+        
+        <div class="product-item">
+          <img src="{{ product.featured_image | img_url: 'medium' }}" alt="{{ product.title }}">
+          <h3><a href="{{ product.url }}">{{ product.title }}</a></h3>
+          <p>{{ product.price | money }}</p>
+          <p>Vendor: {{ product.vendor }}</p>
+          <p>Type: {{ product.type }}</p>
+          
+          {% if product.metafields.custom.why.value %}
+            <p>Why: {{ product.metafields.custom.why.value }}</p>
+          {% endif %}
+          
+          <a href="{{ product.url }}">Xem chi tiết</a>
+        </div>
+      {% endif %}
+    {% endfor %}
+    
+    <p>Tìm thấy: {{ found_count }} sản phẩm</p>
+  </div>
+{% endif %}

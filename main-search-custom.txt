@@ -1,0 +1,491 @@
+{{ 'template-collection.css' | asset_url | stylesheet_tag }}
+{{ 'component-card.css' | asset_url | stylesheet_tag }}
+{{ 'component-price.css' | asset_url | stylesheet_tag }}
+{{ 'component-search.css' | asset_url | stylesheet_tag }}
+
+{%- if section.settings.enable_filtering or section.settings.enable_sorting -%}
+  {{ 'component-facets.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'facets.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+
+{% if section.settings.image_shape == 'blob' %}
+  {{ 'mask-blobs.css' | asset_url | stylesheet_tag }}
+{%- endif -%}
+
+<script src="{{ 'main-search.js' | asset_url }}" defer="defer"></script>
+
+<style>
+  .template-search__header {
+    margin-bottom: 3rem;
+  }
+
+  .template-search__search {
+    margin: 0 auto 3.5rem;
+    max-width: 74.1rem;
+  }
+
+  .template-search__search .search {
+    margin-top: 3rem;
+  }
+
+  .template-search--empty {
+    padding-bottom: 18rem;
+  }
+
+  @media screen and (min-width: 750px) {
+    .template-search__header {
+      margin-bottom: 5rem;
+    }
+  }
+
+  .search__button .icon {
+    height: 1.8rem;
+  }
+</style>
+
+{%- liquid
+  assign terms = search.terms | escape
+  assign search_query = search.terms | downcase
+-%}
+
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+{%- comment -%} Custom search logic với metafields - Count first {%- endcomment -%}
+{%- assign found_count = 0 -%}
+
+{%- if search_query != blank -%}
+  {%- for product in collections.all.products limit: 250 -%}
+    {%- assign match = false -%}
+
+    {%- comment -%} Check title {%- endcomment -%}
+    {%- assign title_lower = product.title | downcase -%}
+    {%- if title_lower contains search_query -%}
+      {%- assign match = true -%}
+    {%- endif -%}
+
+    {%- comment -%} Check description {%- endcomment -%}
+    {%- unless match -%}
+      {%- assign desc_lower = product.description | strip_html | downcase -%}
+      {%- if desc_lower contains search_query -%}
+        {%- assign match = true -%}
+      {%- endif -%}
+    {%- endunless -%}
+
+    {%- comment -%} Check vendor {%- endcomment -%}
+    {%- unless match -%}
+      {%- assign vendor_lower = product.vendor | downcase -%}
+      {%- if vendor_lower contains search_query -%}
+        {%- assign match = true -%}
+      {%- endif -%}
+    {%- endunless -%}
+
+    {%- comment -%} Check type {%- endcomment -%}
+    {%- unless match -%}
+      {%- assign type_lower = product.type | downcase -%}
+      {%- if type_lower contains search_query -%}
+        {%- assign match = true -%}
+      {%- endif -%}
+    {%- endunless -%}
+
+    {%- comment -%} Check tags {%- endcomment -%}
+    {%- unless match -%}
+      {%- for tag in product.tags -%}
+        {%- assign tag_lower = tag | downcase -%}
+        {%- if tag_lower contains search_query -%}
+          {%- assign match = true -%}
+          {%- break -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endunless -%}
+
+    {%- comment -%} Check variants {%- endcomment -%}
+    {%- unless match -%}
+      {%- for variant in product.variants -%}
+        {%- assign variant_title_lower = variant.title | downcase -%}
+        {%- assign variant_sku_lower = variant.sku | downcase -%}
+        {%- if variant_title_lower contains search_query or variant_sku_lower contains search_query -%}
+          {%- assign match = true -%}
+          {%- break -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endunless -%}
+
+    {%- comment -%} Check metafields {%- endcomment -%}
+    {%- unless match -%}
+      {%- if product.metafields.custom.why.value -%}
+        {%- assign meta_why_lower = product.metafields.custom.why.value | downcase -%}
+        {%- if meta_why_lower contains search_query -%}
+          {%- assign match = true -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endunless -%}
+
+    {%- unless match -%}
+      {%- if product.metafields.custom.please.value -%}
+        {%- assign meta_please_lower = product.metafields.custom.please.value | downcase -%}
+        {%- if meta_please_lower contains search_query -%}
+          {%- assign match = true -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endunless -%}
+
+    {%- if match -%}
+      {%- assign found_count = found_count | plus: 1 -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+<div class="template-search{% if search_query == blank or found_count == 0 %} template-search--empty{% endif %} section-{{ section.id }}-padding">
+  <div class="template-search__header page-width{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--fade-in{% endif %}">
+    <h1 class="h2 center">
+      {%- if search_query != blank -%}
+        {{- 'templates.search.title' | t -}}
+      {%- else -%}
+        {{- 'general.search.search' | t -}}
+      {%- endif -%}
+    </h1>
+    <div class="template-search__search">
+      {%- if settings.predictive_search_enabled -%}
+        <predictive-search data-loading-text="{{ 'accessibility.loading' | t }}">
+      {%- endif -%}
+      <main-search>
+        <form action="{{ routes.search_url }}" method="get" role="search" class="search">
+          <div class="field">
+            <input
+              class="search__input field__input"
+              id="Search-In-Template"
+              type="search"
+              name="q"
+              value="{{ search.terms | escape }}"
+              placeholder="{{ 'general.search.search' | t }}"
+              {%- if settings.predictive_search_enabled -%}
+                role="combobox"
+                aria-expanded="false"
+                aria-owns="predictive-search-results"
+                aria-controls="predictive-search-results"
+                aria-haspopup="listbox"
+                aria-autocomplete="list"
+                autocorrect="off"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+              {%- endif -%}
+            >
+            <label class="field__label" for="Search-In-Template">{{ 'general.search.search' | t }}</label>
+
+            {%- if settings.predictive_search_enabled -%}
+              <div class="predictive-search predictive-search--search-template" tabindex="-1" data-predictive-search>
+                {%- render 'loading-spinner', class: 'predictive-search__loading-state' -%}
+              </div>
+
+              <span class="predictive-search-status visually-hidden" role="status" aria-hidden="true"></span>
+            {%- endif -%}
+
+            <button
+              type="reset"
+              class="reset__button field__button{% if search.terms == blank %} hidden{% endif %}"
+              aria-label="{{ 'general.search.reset' | t }}"
+            >
+              <span class="svg-wrapper">
+                {{- 'icon-reset.svg' | inline_asset_content -}}
+              </span>
+            </button>
+            <button type="submit" class="search__button field__button" aria-label="{{ 'general.search.search' | t }}">
+              <span class="svg-wrapper">
+                {{- 'icon-search.svg' | inline_asset_content -}}
+              </span>
+            </button>
+          </div>
+        </form>
+      </main-search>
+      {%- if settings.predictive_search_enabled -%}
+        </predictive-search>
+      {%- endif -%}
+    </div>
+    {%- if search_query != blank -%}
+      {%- if found_count > 0 -%}
+        <p role="status">
+          {{ 'templates.search.results_with_count_and_term' | t: terms: search.terms, count: found_count }}
+        </p>
+      {%- else -%}
+        <p role="status">{{ 'templates.search.no_results' | t: terms: search.terms }}</p>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+
+  {%- if search_query != blank -%}
+    <div class="product-grid-container page-width" id="ProductGridContainer">
+      {%- if found_count == 0 -%}
+        <div class="template-search__results collection collection--empty" id="product-grid" data-id="{{ section.id }}">
+          <div class="loading-overlay gradient"></div>
+          <div class="title-wrapper center">
+            <h2 class="title title--primary">
+              {{ 'sections.collection_template.empty' | t }}
+            </h2>
+          </div>
+        </div>
+      {%- else -%}
+        <div class="template-search__results collection" id="product-grid" data-id="{{ section.id }}">
+          <div class="loading-overlay gradient"></div>
+          <ul
+            class="grid product-grid grid--{{ section.settings.columns_mobile }}-col-tablet-down grid--{{ section.settings.columns_desktop }}-col-desktop"
+            role="list"
+          >
+            {%- assign skip_card_product_styles = false -%}
+            {%- for product in collections.all.products limit: 250 -%}
+              {%- assign match = false -%}
+
+              {%- comment -%} Check title {%- endcomment -%}
+              {%- assign title_lower = product.title | downcase -%}
+              {%- if title_lower contains search_query -%}
+                {%- assign match = true -%}
+              {%- endif -%}
+
+              {%- comment -%} Check description {%- endcomment -%}
+              {%- assign desc_lower = product.description | strip_html | downcase -%}
+              {%- if desc_lower contains search_query -%}
+                {%- assign match = true -%}
+              {%- endif -%}
+
+              {%- comment -%} Check vendor {%- endcomment -%}
+              {%- assign vendor_lower = product.vendor | downcase -%}
+              {%- if vendor_lower contains search_query -%}
+                {%- assign match = true -%}
+              {%- endif -%}
+
+              {%- comment -%} Check type {%- endcomment -%}
+              {%- assign type_lower = product.type | downcase -%}
+              {%- if type_lower contains search_query -%}
+                {%- assign match = true -%}
+              {%- endif -%}
+
+              {%- comment -%} Check tags {%- endcomment -%}
+              {%- for tag in product.tags -%}
+                {%- assign tag_lower = tag | downcase -%}
+                {%- if tag_lower contains search_query -%}
+                  {%- assign match = true -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- comment -%} Check variants {%- endcomment -%}
+              {%- for variant in product.variants -%}
+                {%- assign variant_title_lower = variant.title | downcase -%}
+                {%- assign variant_sku_lower = variant.sku | downcase -%}
+                {%- if variant_title_lower contains search_query or variant_sku_lower contains search_query -%}
+                  {%- assign match = true -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- comment -%} Check metafields {%- endcomment -%}
+              {%- if product.metafields.custom.why.value -%}
+                {%- assign meta_why_lower = product.metafields.custom.why.value | downcase -%}
+                {%- if meta_why_lower contains search_query -%}
+                  {%- assign match = true -%}
+                {%- endif -%}
+              {%- endif -%}
+
+              {%- if product.metafields.custom.please.value -%}
+                {%- assign meta_please_lower = product.metafields.custom.please.value | downcase -%}
+                {%- if meta_please_lower contains search_query -%}
+                  {%- assign match = true -%}
+                {%- endif -%}
+              {%- endif -%}
+
+              {%- if match -%}
+                {%- assign lazy_load = false -%}
+                {%- if found_count >= 2 -%}
+                  {%- assign lazy_load = true -%}
+                {%- endif -%}
+
+                <li
+                  class="grid__item{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+                  {% if settings.animations_reveal_on_scroll %}
+                    data-cascade
+                  {% endif %}
+                >
+                  {% render 'card-product',
+                    card_product: product,
+                    media_aspect_ratio: section.settings.image_ratio,
+                    image_shape: section.settings.image_shape,
+                    show_secondary_image: section.settings.show_secondary_image,
+                    show_vendor: section.settings.show_vendor,
+                    show_rating: section.settings.show_rating,
+                    lazy_load: lazy_load,
+                    skip_styles: skip_card_product_styles
+                  %}
+                  {%- assign skip_card_product_styles = true -%}
+                </li>
+              {%- endif -%}
+            {%- endfor -%}
+          </ul>
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+</div>
+
+{% if section.settings.image_shape == 'arch' %}
+  {{ 'mask-arch.svg' | inline_asset_content }}
+{%- endif -%}
+
+<script>
+  {%- if search.terms != blank -%}
+    document.addEventListener('DOMContentLoaded', function () {
+      document.title = `Search: {{ found_count }} results found for "{{ search.terms | escape }}" – {{ shop.name }}`;
+    });
+  {%- endif -%}
+</script>
+
+{% schema %}
+{
+  "name": "t:sections.main-search.name",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "label": "t:sections.main-search.settings.columns_desktop.label"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "default": "2",
+      "label": "t:sections.main-search.settings.columns_mobile.label",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:sections.main-search.settings.columns_mobile.options__1.label"
+        },
+        {
+          "value": "2",
+          "label": "t:sections.main-search.settings.columns_mobile.options__2.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main-search.settings.header__1.content"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:sections.main-search.settings.image_ratio.options__1.label"
+        },
+        {
+          "value": "portrait",
+          "label": "t:sections.main-search.settings.image_ratio.options__2.label"
+        },
+        {
+          "value": "square",
+          "label": "t:sections.main-search.settings.image_ratio.options__3.label"
+        }
+      ],
+      "default": "adapt",
+      "label": "t:sections.main-search.settings.image_ratio.label"
+    },
+    {
+      "type": "select",
+      "id": "image_shape",
+      "options": [
+        {
+          "value": "default",
+          "label": "t:sections.all.image_shape.options__1.label"
+        },
+        {
+          "value": "arch",
+          "label": "t:sections.all.image_shape.options__2.label"
+        },
+        {
+          "value": "blob",
+          "label": "t:sections.all.image_shape.options__3.label"
+        },
+        {
+          "value": "chevronleft",
+          "label": "t:sections.all.image_shape.options__4.label"
+        },
+        {
+          "value": "chevronright",
+          "label": "t:sections.all.image_shape.options__5.label"
+        },
+        {
+          "value": "diamond",
+          "label": "t:sections.all.image_shape.options__6.label"
+        },
+        {
+          "value": "parallelogram",
+          "label": "t:sections.all.image_shape.options__7.label"
+        },
+        {
+          "value": "round",
+          "label": "t:sections.all.image_shape.options__8.label"
+        }
+      ],
+      "default": "default",
+      "label": "t:sections.all.image_shape.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_secondary_image",
+      "default": false,
+      "label": "t:sections.main-search.settings.show_secondary_image.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "default": false,
+      "label": "t:sections.main-search.settings.show_vendor.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "default": false,
+      "label": "t:sections.main-search.settings.show_rating.label",
+      "info": "t:sections.main-search.settings.show_rating.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 36
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,195 @@
+<!-- filter popup -->
+{%- liquid
+  assign sort_by = results.sort_by | default: results.default_sort_by
+  assign total_active_values = 0
+  if results.url
+    assign results_url = results.url
+  else
+    assign terms = results.terms | escape
+    assign results_url = '?q=' | append: terms | append: '&options%5Bprefix%5D=last&sort_by=' | append: sort_by
+  endif
+-%}
+<div class="collection_popup" data-filter-popup>
+  <facet-filters-form class="collection_popup_inner">
+    <form id="FacetFiltersFormMobile" class="mobile-facets" method="get" action="{{ routes.search_url }}">
+      <input type="hidden" name="q" value="*">
+      <input type="hidden" name="options[prefix]" value="last">
+      <div id="FacetsWrapperMobile">
+        <div class="collection_popup_head">
+          <h2>{{ results.title }} / Filter Search</h2>
+          <a
+            href="javascript:;"
+            class="close"
+            aria-label="ポップアップを閉じる"
+            close-filter-popup
+          >
+            {%- render 'icon-custom' with 'close_facet' -%}
+          </a>
+        </div>
+        <div class="collection_popup_list">
+          {%- for filter in results.filters -%}
+            {% assign total_active_values = total_active_values | plus: filter.active_values.size %}
+            <div
+              class="collection_popup_items js-filter{% if filter.param_name contains 'availability'%} is-availability{% endif %}"
+              id="Details-Mobile-{{ filter.param_name | escape }}-{{ section.id }}"
+              data-index="mobile-{{ forloop.index }}"
+            >
+              <div class="collection_popup_btn js-collapse">
+                <p>{{ filter.label | escape }} :</p>
+                <div class="arrow">
+                  {%- render 'icon-custom' with 'arrow_facet' -%}
+                </div>
+                <span
+                  class="visually-hidden filter-active--count"
+                  data-count-active="{{ active_count }}"
+                ></span>
+              </div>
+              <div class="collection_popup_content js-panel">
+                <ul
+                  class="mobile-facets__list list-unstyled"
+                  role="list"
+                  {% if filter.label contains 'Size' %}
+                    style="grid-template-columns: repeat(2, 1fr);gap: 10px;"
+                  {% endif %}
+                >
+                  {%- liquid
+                    assign sorted_values = filter.values
+                    # Keep the selected values grouped together when operator is AND
+                    if filter.operator == 'AND'
+                      assign active_filter_values = filter.values | where: 'active', true
+                      assign inactive_filter_values = filter.values | where: 'active', false
+                      assign sorted_values = active_filter_values | concat: inactive_filter_values
+                    endif
+                  -%}
+                  {%- for value in sorted_values -%}
+                    {% liquid
+                      assign input_id = 'Filter-' | append: filter.param_name | escape | append: '-mobile-' | append: forloop.index
+                      assign is_disabled = false
+                      if value.count == 0 and value.active == false
+                        assign is_disabled = true
+                      endif
+                    %}
+                    {%- capture label_class -%}
+                    facets__label mobile-facets__label{% if is_disabled %} disabled{% endif %}{% if value.active %} active{% endif %}
+                    {%- endcapture -%}
+                    {%- capture text_value -%}
+                      <span class="facet-checkbox__text" aria-hidden="true">
+                        <span class="facet-checkbox__text-label">{{- value.label | escape }}</span>
+                      </span>
+                      <span class="visually-hidden">
+                        {{- value.label | escape }} (
+                        {%- if value.count == '1' -%}
+                          {{- 'products.facets.product_count_simple.one' | t: count: value.count -}}
+                        {%- else -%}
+                          {{- 'products.facets.product_count_simple.other' | t: count: value.count -}}
+                        {%- endif -%}
+                        )
+                      </span>
+                    {%- endcapture -%}
+                    {% unless value.label contains 'hidden' %}
+                      <li class="mobile-facets__item {% if is_disabled %}hidden{% endif %} {% if value.label contains '在庫切れ' %}hidden{% endif %}">
+                        <label for="{{ input_id }}" class="{{ label_class }}">
+                          <input
+                            class="mobile-facets__checkbox"
+                            type="checkbox"
+                            name="{{ value.param_name }}"
+                            value="{{ value.value }}"
+                            id="{{ input_id }}"
+                            {% if value.active %}
+                              checked
+                            {% endif %}
+                            {% if is_disabled %}
+                              disabled
+                            {% endif %}
+                          >
+                          {{ text_value }}
+                        </label>
+                      </li>
+                    {% endunless %}
+                  {%- endfor -%}
+                </ul>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+        <div class="mobile-facets__footer">
+          <div class="collection_popup_bottom">
+            {% comment %}
+              <a href="javascript:;" class="search" close-filter-popup>
+                <p class="total_count">
+                  Search (<span>{{ active_count }}</span>)
+                </p>
+              </a>
+            {% endcomment %}
+            <button type="submit" class="search" close-filter-popup>
+              <p class="total_count">
+                Search (<span>{{ active_count }}</span>)
+              </p>
+            </button>
+            <facet-remove class="mobile-facets__clear-wrapper">
+              <a href="{{ results_url }}" class="mobile-facets__clear underlined-link"> Clear </a>
+            </facet-remove>
+          </div>
+        </div>
+      </div>
+    </form>
+  </facet-filters-form>
+</div>
+
+
+
+
+
+
+
+// ======================= main-search-custom
+    {%- liquid
+      if search.performed
+        assign results_url = '/search?q='
+      else
+        assign results_url = '/search'
+      endif
+
+      assign total_active_values = 0
+      for filter in search.filters
+        assign total_active_values = total_active_values | plus: filter.active_values.size
+      endfor
+    -%}
+
+    <facet-filters-form>
+      <form
+        id="FacetFiltersPillsFormSearch"
+        class="{% if total_active_values == 0 %}hidden{% endif %}"
+      >
+        <div class="collection_filter mb-head --pad">
+          <h3 class="title">Filter Search</h3>
+          <div class="collection_filter_inner">
+            <div class="active-facets active-facets-desktop">
+              <span
+                class="visually-hidden active-facets_active--count"
+                data-count-active="{{ total_active_values }}"
+              ></span>
+
+              {%- for filter in search.filters -%}
+                {%- for value in filter.active_values -%}
+                  <facet-remove class="active-facets__item">
+                    <a href="{{ value.url_to_remove }}" class="active-facets__button active-facets__button--light">
+                      <span class="active-facets__button-inner button button--tertiary">
+                        {{ filter.label | escape }}: {{ value.label | escape }}
+                        {% render 'icon-close-small' %}
+                        <span class="visually-hidden">{{ 'products.facets.clear_filter' | t }}</span>
+                      </span>
+                    </a>
+                  </facet-remove>
+                {%- endfor -%}
+              {%- endfor -%}
+            </div>
+            <facet-remove class="active-facets__button-wrapper u-hoverlink pc-only">
+              <a href="{{ results_url }}" class="active-facets__button-remove underlined-link">
+                <span>Clear</span>
+              </a>
+            </facet-remove>
+          </div>
+        </div>
+      </form>
+    </facet-filters-form>
