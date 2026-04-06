@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Damai — Rooms</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ═══ Fixed Overlay Elements ════════════════════════════════════════ -->
+  </div>
+
+  <div class="transition-screen">
+    <div class="loading-circle">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══ Navigation ════════════════════════════════════════ -->
+  <nav>
+    <a href="index.html" class="nav-logo">The Damai</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="rooms.html" class="nav-active">Rooms</a></li>
+    </ul>
+  </nav>
+
+  <!-- ═══ Barba Wrapper ════════════════════════════════════ -->
+  <div data-barba="wrapper">
+    <main data-barba="container" data-barba-namespace="rooms">
+
+      <div class="site-main">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="col-row">
+            <p style="font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;font-family:system-ui,sans-serif;opacity:.5;">Accommodations</p>
+          </div>
+          <div class="col-row">
+            <h1>12 Private<br>Villas</h1>
+          </div>
+        </div>
+
+        <!-- Room cards -->
+        <section class="section section--wide">
+          <div class="section-grid" style="grid-template-columns:repeat(2,1fr);gap:1.5rem;">
+
+            <div style="border-radius:12px;overflow:hidden;background:#fff;display:grid;grid-template-columns:1fr 1fr;">
+              <div style="aspect-ratio:3/4;overflow:hidden;">
+                <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=700&q=80" alt="Jungle Villa" style="width:100%;height:100%;object-fit:cover;display:block;" />
+              </div>
+              <div style="padding:2rem;display:flex;flex-direction:column;justify-content:center;">
+                <p style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-family:system-ui,sans-serif;opacity:.5;">Villa Type 01</p>
+                <div class="divider"></div>
+                <h2 style="font-size:2rem;">Jungle Pool Villa</h2>
+                <p style="margin-top:1rem;">A private infinity pool that seems to merge with the jungle canopy. King bed, outdoor rain shower, and open-air living pavilion.</p>
+                <p style="margin-top:1.5rem;font-family:system-ui,sans-serif;font-size:.85rem;">From <strong>$480</strong> / night</p>
+              </div>
+            </div>
+
+            <div style="border-radius:12px;overflow:hidden;background:#fff;display:grid;grid-template-columns:1fr 1fr;">
+              <div style="aspect-ratio:3/4;overflow:hidden;">
+                <img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?w=700&q=80" alt="Rice Terrace Suite" style="width:100%;height:100%;object-fit:cover;display:block;" />
+              </div>
+              <div style="padding:2rem;display:flex;flex-direction:column;justify-content:center;">
+                <p style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-family:system-ui,sans-serif;opacity:.5;">Villa Type 02</p>
+                <div class="divider"></div>
+                <h2 style="font-size:2rem;">Terrace Suite</h2>
+                <p style="margin-top:1rem;">Perched above ancient rice terraces with 270° panoramic views. Hand-carved teak doors and a private meditation garden.</p>
+                <p style="margin-top:1.5rem;font-family:system-ui,sans-serif;font-size:.85rem;">From <strong>$360</strong> / night</p>
+              </div>
+            </div>
+
+            <div style="border-radius:12px;overflow:hidden;background:#fff;display:grid;grid-template-columns:1fr 1fr;">
+              <div style="aspect-ratio:3/4;overflow:hidden;">
+                <img src="https://images.unsplash.com/photo-1559599101-f09722fb4948?w=700&q=80" alt="Forest Pavilion" style="width:100%;height:100%;object-fit:cover;display:block;" />
+              </div>
+              <div style="padding:2rem;display:flex;flex-direction:column;justify-content:center;">
+                <p style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-family:system-ui,sans-serif;opacity:.5;">Villa Type 03</p>
+                <div class="divider"></div>
+                <h2 style="font-size:2rem;">Forest Pavilion</h2>
+                <p style="margin-top:1rem;">An intimate single-room retreat wrapped in bamboo and stone. Perfect for solo travellers seeking deep solitude in nature.</p>
+                <p style="margin-top:1.5rem;font-family:system-ui,sans-serif;font-size:.85rem;">From <strong>$280</strong> / night</p>
+              </div>
+            </div>
+
+            <div style="border-radius:12px;overflow:hidden;background:#1a1814;display:grid;grid-template-columns:1fr 1fr;color:#f5f2ee;">
+              <div style="padding:2rem;display:flex;flex-direction:column;justify-content:center;">
+                <p style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-family:system-ui,sans-serif;opacity:.5;color:#f5f2ee;">Reserve</p>
+                <div class="divider"></div>
+                <h2 style="font-size:2rem;">Book Your Stay</h2>
+                <p style="margin-top:1rem;color:rgba(245,242,238,.6);">All villas include daily breakfast, welcome ceremony, and access to the spa sanctuary.</p>
+                <a href="#" style="display:inline-block;margin-top:2rem;padding:.8rem 1.8rem;border:1px solid rgba(245,242,238,.3);font-family:system-ui,sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:#f5f2ee;border-radius:4px;transition:background .3s;"
+                   onmouseover="this.style.background='rgba(255,255,255,.1)'"
+                   onmouseout="this.style.background='transparent'">Check Availability</a>
+              </div>
+              <div style="aspect-ratio:3/4;overflow:hidden;">
+                <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=700&q=80" alt="Spa" style="width:100%;height:100%;object-fit:cover;display:block;opacity:.6;" />
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <footer>
+          <span>© 2024 The Damai</span>
+          <span>Ubud, Bali</span>
+        </footer>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══ Scripts ═══════════════════════════════════════════ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/CustomEase.min.js"></script>
+  <script src="https://unpkg.com/@barba/core@2.9.7/dist/barba.umd.js"></script>
+  <script src="transition.js"></script>
+
+</body>
+</html>
