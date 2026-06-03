@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/pace-js@latest/pace.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pace {
+            pointer-events: none;
+            user-select: none;
+            z-index: 900;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .pace .pace-progress {
+            transform: none !important;
+            text-align: center
+        }
+
+        .pace.pace-inactive {
+            visibility: hidden;
+            -webkit-transition: all 1s;
+            transition: all 1s
+        }
+
+        .pace .pace-progress::after {
+            font-size: 8vw;
+            content: attr(data-progress-text);
+            display: block;
+            color: #eaeaea;
+        }
+
+        .pace-done .loader-bg {
+            transform: translateY(-100vh);
+            transition: all 1s cubic-bezier(.96, .37, .25, 1)
+        }
+
+        .wrapper {
+            opacity: 0;
+            transition: opacity 1s ease 1s;
+        }
+
+        .pace-done .wrapper {
+            opacity: 1;
+        }
+
+        .pace-done .loader-footer,
+        .pace-done .loader-header,
+        .pace-done .pace .pace-progress::after {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .loader-bg {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            will-change: transform;
+        }
+
+        .loader-footer-container,
+        .loader-header-container {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .loader-header-container {
+            top: 5vw;
+        }
+
+        .loader-footer-container {
+            bottom: 5vw;
+        }
+
+        .c-light {
+            color: #eaeaea;
+        }
+
+        .c-dark {
+            color: #1a1a1a;
+        }
+
+        .bg-light {
+            background-color: #eaeaea;
+        }
+
+        .bg-dark {
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+
+
+<body class="bg-light c-dark">
+    <!-- @loader -->
+    <div class="loader-bg bg-dark"></div>
+    <!-- @@loader -->
+
+    <!-- @loader home -->
+    <div class="loader-header-container">
+        <h1 class="loader-header c-light">Phu Nguyen Portfolio</h1>
+    </div>
+    <div class="loader-footer-container">
+        <p class="loader-footer c-light">Selected Works</p>
+    </div>
+    <!-- @@loader home -->
+
+    <div class="wrapper">
+        <a href="/about.html">about</a>
+    </div>
+</body>
+
+</html>

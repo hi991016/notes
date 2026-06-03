@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/pace-js@latest/pace.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pace {
+            display: none;
+        }
+
+        .loader-bg {
+            -webkit-transform: translateY(100vh);
+            transform: translateY(100vh);
+            -webkit-transition: all 0.5s cubic-bezier(0.96, 0.37, 0.25, 1);
+            transition: all 0.5s cubic-bezier(0.96, 0.37, 0.25, 1);
+        }
+
+        .pace-running .loader-bg {
+            -webkit-transform: translateY(0);
+            transform: translateY(0);
+        }
+
+        .pace-done .loader-bg {
+            -webkit-transform: translateY(-100vh);
+            transform: translateY(-100vh);
+            -webkit-transition: all 1s cubic-bezier(0.96, 0.37, 0.25, 1);
+            transition: all 1s cubic-bezier(0.96, 0.37, 0.25, 1);
+        }
+
+
+        .wrapper {
+            opacity: 0;
+            transition: opacity 1s ease 1s;
+        }
+
+        .pace-done .wrapper {
+            opacity: 1;
+        }
+
+        .loader-bg {
+            will-change: transform;
+        }
+
+        .loader-bg {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .loader-footer-container,
+        .loader-header-container {
+            position: fixed;
+            left: 50%;
+            -webkit-transform: translateX(-50%);
+            transform: translateX(-50%);
+        }
+
+        .loader-header-container {
+            top: 5vw;
+        }
+
+        .loader-footer-container {
+            bottom: 5vw;
+        }
+
+        .c-light {
+            color: #eaeaea;
+        }
+
+        .c-dark {
+            color: #1a1a1a;
+        }
+
+        .bg-light {
+            background-color: #eaeaea;
+        }
+
+        .bg-dark {
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+
+<body class="bg-light c-dark">
+    <!-- @loader -->
+    <div class="loader-bg bg-dark"></div>
+    <!-- @@loader -->
+
+    <div class="wrapper">
+        <a href="/">home</a>
+    </div>
+</body>
+
+</html>
