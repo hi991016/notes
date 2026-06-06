@@ -1,0 +1,57 @@
+/* Layouts
+------------------------------------------------------------*/
+@use '@/styles/imports/core/mixins' as *;
+
+@-ms-viewport {
+  width: device-width;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 62.5%;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  max-width: 100%;
+  margin: auto;
+  background: var(--main-bg-cl);
+  color: var(--main-text-cl);
+  font-family: var(--main-fonts);
+  font-size: 1.6rem;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.l-layout {
+  background-image: url('/assets/images/bg-noise.webp');
+  background-size: 100px 100px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+section {
+  position: relative;
+}
+
+::selection {
+  background: #ededed;
+  color: #000;
+}

@@ -1,0 +1,63 @@
+/* Scroll bar
+------------------------------------------------------------*/
+@use '@/styles/imports/core/mixins' as *;
+
+body {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &.is-scrolling [data-scrollbar],
+  &.is-dragging [data-scrollbar] {
+    opacity: 1;
+  }
+
+  &.is-dragging {
+    user-select: none;
+
+    [data-scrollbar-thumb] {
+      cursor: grabbing;
+      opacity: 0.5;
+    }
+  }
+}
+
+.c-scrollbar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 11px;
+  height: 100vh;
+  transform-origin: center right;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+  opacity: 0;
+  z-index: 9999;
+
+  &:hover {
+    opacity: 1;
+    transform: scaleX(1.45);
+
+    [data-scrollbar-thumb] {
+      opacity: 0.5;
+    }
+  }
+
+  &_thumb {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #000;
+    opacity: 0.5;
+    width: 7px;
+    border-radius: 10px;
+    margin: 2px;
+    cursor: grab;
+    transition: opacity 0.2s;
+  }
+
+  @include maxW {
+    display: none;
+  }
+}

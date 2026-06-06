@@ -1,0 +1,21 @@
+@charset 'utf-8';
+
+// core 
+@use 'imports/core/variables';
+@use 'imports/core/mixins';
+@use 'imports/core/reset';
+@use 'imports/core/libs';
+@use 'imports/core/scrollbar';
+@use 'imports/core/layouts';
+@use 'imports/core/components';
+
+// header, menu, footer
+@use 'imports/core/header';
+@use 'imports/core/menu';
+@use 'imports/core/footer';
+
+// pages
+@use 'imports/pages/home';
+
+// utils
+@use 'imports/core/utils';

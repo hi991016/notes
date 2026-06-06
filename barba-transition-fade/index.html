@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="title" content="TITLE_HERE">
+  <meta name="description" content="DESCRIPTION_HERE">
+  <meta name="keywords"
+    content="お酢屋,お酢屋がつくった,こだわりぽん酢,マルカン,酢,オンラインショップ,Marukan,Vinegar,Online Shop,marukannsu,marukansu,兵庫県,神戸,す,お料理,アイディア,レシピ,老舗,360年,家庭用,業務用,加工用,お寿司,リンゴ酢,飲むお酢,サラダ酢,皇室,宮内庁御用達のお酢,ポン酢,酢の物酢,醸造酢,穀物酢,米酢,ドリンクビネガー,黒酢,玄米酢,有機ＪＡＳ認定商品,ワインビネガー,marukatsu,marukan,makan">
+
+  <!-- @meta -->
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TITLE_HERE">
+  <meta property="og:title" content="TITLE_HERE">
+  <meta property="og:description" content="DESCRIPTION_HERE">
+  <meta property="og:image" content="https://marukan.com/komezu/assets/images/ogimage.jpg">
+  <meta property="og:url" content="https://marukan.com/komezu/">
+
+  <link rel="canonical" href="https://marukan.com/komezu/">
+  <link rel="icon" href="/favicon.ico">
+
+  <!-- @adobe fonts -->
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin>
+  <link rel="preconnect" href="https://p.typekit.net" crossorigin>
+  <script>
+    (function (d) {
+      var config = {
+        kitId: 'bnw1djk',
+        scriptTimeout: 3000,
+        active: function () { window.__fontsReady && window.__fontsReady.resolve() },
+        inactive: function () { window.__fontsReady && window.__fontsReady.resolve() },
+        async: true
+      },
+        h = d.documentElement, t = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, config.scriptTimeout), tk = d.createElement("script"), f = false, s = d.getElementsByTagName("script")[0], a; h.className += " wf-loading"; tk.src = 'https://use.typekit.net/' + config.kitId + '.js'; tk.async = true; tk.onload = tk.onreadystatechange = function () { a = this.readyState; if (f || a && a != "complete" && a != "loaded") return; f = true; clearTimeout(t); try { Typekit.load(config) } catch (e) { } }; s.parentNode.insertBefore(tk, s)
+    })(document);
+
+    window.__fontsReady = (function () {
+      var res
+      var p = new Promise(function (resolve) { res = resolve })
+      p.resolve = res
+      return p
+    })()
+  </script>
+
+  <title>Marukan Komezu</title>
+  <link rel="stylesheet" href="/src/styles/style.scss">
+</head>
+
+<body class="fadeout" data-page-transition="not-active">
+
+  <div class="l-layout">
+    <!-- @header -->
+    <header class="c-header">header</header>
+    <!-- @@header -->
+
+    <!-- @main -->
+    <div data-barba="wrapper">
+      <main class="homepage" data-barba="container" data-barba-namespace="home">
+        <!--* fv *-->
+        <section class="fv">fv</section>
+        <!--* end fv *-->
+
+        <!--* intro *-->
+        <section id="intro">intro</section>
+        <!--* end intro *-->
+
+        <!--* intro *-->
+        <section id="product">product</section>
+        <!--* end intro *-->
+      </main>
+    </div>
+    <!-- @main -->
+
+    <!-- @footer -->
+    <footer class="c-footer">footer</footer>
+    <!-- @@footer -->
+  </div>
+
+  <!-- @custom scrollbar -->
+  <div class="c-scrollbar" data-scrollbar>
+    <div class="c-scrollbar_thumb" data-scrollbar-thumb></div>
+  </div>
+
+  <!-- @page transition -->
+  <div class="c-transition-screen" data-transition-screen></div>
+  <!-- @page transition -->
+  <!-- @custom scrollbar -->
+  <script type="module" src="/src/app.js"></script>
+</body>
+
+</html>

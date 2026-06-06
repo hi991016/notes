@@ -1,0 +1,39 @@
+/* Utils
+------------------------------------------------------------*/
+@use '@/styles/imports/core/mixins' as *;
+
+/* lazy load */
+img.lazy {
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+
+  &.loaded {
+    opacity: 1;
+  }
+}
+
+/* fadeout */
+[data-transition-screen] {
+  opacity: 1;
+  visibility: visible;
+}
+// [data-page-transition='not-active'] {
+// }
+// [data-page-transition='active'] {
+// }
+
+/* only device */
+[hidden],
+[data-sp-only] {
+  display: none !important;
+}
+
+@include maxW {
+  [data-pc-only] {
+    display: none !important;
+  }
+
+  [data-sp-only] {
+    display: block !important;
+  }
+}
