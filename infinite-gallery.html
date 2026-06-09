@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infinite Gallery Slider</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0c0c0c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 52px;
+      padding: 0 32px;
+      user-select: none;
+    }
+
+    .header .eyebrow {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #383838;
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      font-size: clamp(40px, 8vw, 90px);
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -4px;
+      color: #f0f0f0;
+    }
+
+    .header h1 .outline {
+      color: transparent;
+      -webkit-text-stroke: 1.5px #282828;
+    }
+
+    /* ── Gallery ── */
+    .gallery-wrapper {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .gallery-wrapper:active { cursor: grabbing; }
+
+    /* Edge vignettes — colour must match body background */
+    .gallery-wrapper::before,
+    .gallery-wrapper::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 180px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .gallery-wrapper::before {
+      left: 0;
+      background: linear-gradient(to right, #0c0c0c 0%, transparent 100%);
+    }
+    .gallery-wrapper::after {
+      right: 0;
+      background: linear-gradient(to left, #0c0c0c 0%, transparent 100%);
+    }
+
+    /* ── Track ── */
+    .gallery-track {
+      display: flex;
+      align-items: center;
+      gap: 16px;          /* ← must match JS GAP constant */
+      padding: 16px 0;
+      will-change: transform;
+    }
+
+    /* ── Card ── */
+    .gallery-item {
+      flex: 0 0 auto;
+      height: 280px;      /* fixed height for all cards */
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .gallery-item .card-bg {
+      position: absolute;
+      inset: 0;
+      transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .gallery-item:hover .card-bg {
+      transform: scale(1.07);
+    }
+
+    .gallery-item .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        170deg,
+        rgba(255,255,255,0.04) 0%,
+        transparent 45%,
+        rgba(0,0,0,0.6) 100%
+      );
+    }
+
+    .gallery-item .card-meta {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 20px 18px 16px;
+      z-index: 1;
+    }
+
+    .gallery-item .card-meta .cat {
+      display: block;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 5px;
+    }
+
+    .gallery-item .card-meta .name {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    /* ── Clone debug info ── */
+    .info {
+      margin-top: 28px;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #282828;
+      letter-spacing: 1px;
+    }
+
+    /* ── Pause badge ── */
+    .badge {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .badge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #FF6B35;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <p class="eyebrow">Curated Works</p>
+    <h1>Infinite <span class="outline">Gallery</span></h1>
+  </header>
+
+  <div class="gallery-wrapper" id="wrapper">
+    <div class="gallery-track" id="track"></div>
+  </div>
+
+  <p class="info" id="info"></p>
+
+  <div class="badge" id="badge">
+    <span class="dot"></span>
+    Paused
+  </div>
+
+  <script>
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       CONFIG — tweak these to taste
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    const SPEED = 80;   // px / second
+    const GAP   = 16;   // must match CSS `gap` on .gallery-track
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       ITEMS — add / remove / change freely
+       w   → card width in px  (height fixed via CSS)
+       bg  → any valid CSS background value
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    const ITEMS = [
+      { w: 380, bg: 'linear-gradient(145deg,#0f0c29,#302b63,#24243e)', cat: 'Cosmos',   name: 'Nebula Drift'  },
+      { w: 520, bg: 'linear-gradient(145deg,#FC5C7D,#6A82FB)',          cat: 'Sunrise',  name: 'Golden Hour'   },
+      { w: 300, bg: 'linear-gradient(145deg,#134e5e,#71b280)',          cat: 'Nature',   name: 'Forest Floor'  },
+      { w: 450, bg: 'linear-gradient(145deg,#373B44,#4286f4)',          cat: 'Ocean',    name: 'Horizon Blue'  },
+      { w: 340, bg: 'linear-gradient(145deg,#f12711,#f5af19)',          cat: 'Fire',     name: 'Ember Glow'    },
+      { w: 480, bg: 'linear-gradient(145deg,#1FA2FF,#12D8FA,#A6FFCB)', cat: 'Arctic',   name: 'Polar Light'   },
+      { w: 320, bg: 'linear-gradient(145deg,#360033,#0b8793)',          cat: 'Abstract', name: 'Void Garden'   },
+    ];
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       DOM
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    const wrapper = document.getElementById('wrapper');
+    const track   = document.getElementById('track');
+    const badge   = document.getElementById('badge');
+    const info    = document.getElementById('info');
+
+    /* ── Build a card element ── */
+    function createCard({ w, bg, cat, name }) {
+      const el = document.createElement('div');
+      el.className = 'gallery-item';
+      el.style.width = w + 'px';
+      el.innerHTML = `
+        <div class="card-bg" style="background:${bg}"></div>
+        <div class="card-overlay"></div>
+        <div class="card-meta">
+          <span class="cat">${cat}</span>
+          <span class="name">${name}</span>
+        </div>`;
+      return el;
+    }
+
+    /* ── Total pixel width of an array of card elements ──
+       Formula: each card contributes its own width + one GAP.
+       This correctly accounts for the CSS flex gap that sits
+       between every adjacent pair — including the seam between
+       the last card of one set and the first card of the next.   */
+    function measureWidth(els) {
+      return els.reduce((sum, el) => {
+        const w = parseFloat(el.style.width) || el.getBoundingClientRect().width;
+        return sum + w + GAP;
+      }, 0);
+    }
+
+    /* ── Clone every element in `src` and append to track ── */
+    function appendClones(src) {
+      src.forEach(el => {
+        const clone = el.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.dataset.clone = 'true';
+        track.appendChild(clone);
+      });
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       INIT
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    let tween;
+
+    function initMarquee() {
+
+      /* 1 ── Insert original cards ── */
+      ITEMS.forEach(data => track.appendChild(createCard(data)));
+      const originals = [...track.children];
+      let clonesAdded = 0;
+
+      /* 2 ── Clone until one set fills the viewport
+               Without this, items narrower than the screen leave
+               an empty gap as they scroll off the edge.          */
+      const minWidth = wrapper.offsetWidth + GAP;
+      let   setWidth = measureWidth(originals);
+
+      while (setWidth < minWidth) {
+        appendClones(originals);
+        setWidth     = measureWidth([...track.children]);
+        clonesAdded += originals.length;
+        if (track.children.length > 400) break; // safety valve
+      }
+
+      /* 3 ── Snapshot "first set" and compute loopWidth ──
+               loopWidth = the distance to animate per cycle.
+               After travelling exactly loopWidth the duplicate
+               set snaps into the exact position the first set
+               was in — creating a seamless infinite loop.        */
+      const firstSet  = [...track.children];
+      const loopWidth = measureWidth(firstSet);
+
+      /* 4 ── Append a full duplicate of the first set ──
+               The duplicate sits right after the first set.
+               At animation start, the duplicate is what the
+               viewer sees; as x advances, the originals enter
+               from the left until they perfectly replace it.    */
+      appendClones(firstSet);
+      clonesAdded += firstSet.length;
+
+      /* Debug readout */
+      info.textContent =
+        `${originals.length} original cards · ${clonesAdded} clones added · loopWidth ${Math.round(loopWidth)}px`;
+
+      /* 5 ── GSAP animation ──────────────────────────────
+         Direction: Left → Right  (x increases over time)
+
+         Track layout:
+           [ ← firstSet (loopWidth) → | ← duplicateSet → ]
+             position 0               position loopWidth
+
+         x = −loopWidth :  duplicateSet is at viewport-left
+         x = 0          :  firstSet     is at viewport-left
+                            ↑ identical content → seamless
+
+         fromTo + repeat:−1 jumps back to fromVars (x=−loopWidth)
+         at the end of every cycle automatically.               */
+      tween = gsap.fromTo(
+        track,
+        { x: -loopWidth },
+        {
+          x        : 0,
+          duration : loopWidth / SPEED,
+          ease     : 'none',
+          repeat   : -1,
+        }
+      );
+
+      /* 6 ── Hover: smooth pause / resume ── */
+      wrapper.addEventListener('mouseenter', () => {
+        gsap.to(tween, { timeScale: 0, duration: 0.5, ease: 'power2.out' });
+        badge.classList.add('visible');
+      });
+
+      wrapper.addEventListener('mouseleave', () => {
+        gsap.to(tween, { timeScale: 1, duration: 0.6, ease: 'power2.inOut' });
+        badge.classList.remove('visible');
+      });
+    }
+
+    /* Run after full page load so getBoundingClientRect is reliable */
+    window.addEventListener('load', initMarquee);
+  </script>
+</body>
+</html>
