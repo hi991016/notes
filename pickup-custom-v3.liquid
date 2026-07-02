@@ -1,0 +1,602 @@
+{%- comment -%}
+  snippets/custom-pickup-v3.liquid
+  ──────────────────────────────────────────────────────────
+  Custom Store Pickup widget – UI riêng, nhưng KHÔNG tự ghi
+  cart attributes qua /cart/update.js.
+
+  Thay vào đó: giữ nguyên widget Zapiet gốc (#storePickupApp)
+  trong DOM, chỉ ẩn bằng CSS (clip-trick, không display:none).
+  Khi user chọn Date/Time trên UI custom, script sẽ giả lập
+  click THẬT lên đúng element gốc bên trong #storePickupApp
+  (nút ngày thật + <li> giờ thật) để CHÍNH Zapiet tự xử lý lưu.
+
+  Lý do: checkout của Zapiet không chỉ đọc cart.attributes thô,
+  nó phụ thuộc vào flow nội bộ của widget gốc khi user "thật sự"
+  click vào control của nó. Tự ghi tay /cart/update.js không đủ
+  để Time được nhận ở order, và không tự re-sync khi cart đổi.
+  Dùng chính widget gốc để lưu thì được cả 2 vấn đề miễn phí.
+
+  YÊU CẦU: #storePickupApp (widget Zapiet gốc) phải được Zapiet
+  app tự render ở đâu đó trong cùng DOM (thường là trong cart
+  drawer). Snippet này không tự render nó ra, chỉ tìm & ẩn nó.
+  Nếu theme bạn không thấy #storePickupApp trong DOM, cần bật
+  lại widget gốc trong app block/theme editor trước.
+
+  Cách dùng: {% render 'custom-pickup-v3' %}
+{%- endcomment -%}
+
+<div
+  id="custom-pickup-widget"
+  data-shop="{{ shop.permanent_domain }}"
+  data-api-key="c6aef3bb5d263710ace69c50e0240b31"
+  class="pickup-widget"
+>
+  <p class="pickup-widget__title">STORE PICKUP</p>
+
+  <div class="pickup-widget__field">
+    <label class="pickup-widget__label">DATE</label>
+    <div class="pickup-widget__select-wrap">
+      <select id="pickup-date" class="pickup-widget__select" disabled>
+        <option value="">SELECT</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="pickup-widget__field">
+    <label class="pickup-widget__label">TIME</label>
+    <div class="pickup-widget__select-wrap">
+      <select id="pickup-time" class="pickup-widget__select" disabled>
+        <option value="">SELECT</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="pickup-widget__status" id="pickup-status" aria-live="polite"></p>
+</div>
+
+<style>
+  /* ─────────────────────────────────────────────────────────
+     Ẩn widget Zapiet gốc bằng clip-trick, KHÔNG dùng display:none
+     (Zapiet check kích thước/visibility để init & xử lý click)
+  ───────────────────────────────────────────────────────── */
+  #storePickupApp {
+    position: absolute !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    pointer-events: none !important;
+  }
+
+  #custom-pickup-widget {
+    padding: 16px 0 8px;
+    color: inherit;
+    font-family: inherit;
+  }
+
+  .pickup-widget__title {
+    margin: 0 0 22px;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .pickup-widget__field { margin-bottom: 14px; }
+
+  .pickup-widget__label {
+    display: block;
+    margin: 0 0 8px;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .pickup-widget__select-wrap { position: relative; }
+
+  .pickup-widget__select {
+    width: 100%;
+    padding: 13px 18px;
+    min-height: 50px;
+    border: 1.5px solid currentColor;
+    border-radius: 999px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .pickup-widget__select:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+
+  .pickup-widget__status {
+    margin: 8px 0 0;
+    font-size: 11px;
+    letter-spacing: .04em;
+    min-height: 14px;
+  }
+
+  .pickup-widget__status[data-state="error"] { color: #c0392b; }
+  .pickup-widget__status[data-state="ok"]    { color: #2e7d32; }
+</style>
+
+<script>
+(() => {
+  'use strict';
+
+  const BASE = 'https://api.zapiet.com/v1.0';
+  const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MO = ['January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const $  = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+  /** Chờ getter() trả về giá trị "truthy", poll thay vì bail ngay lập tức.
+   *  Cần thiết vì sau khi cart đổi, cart-drawer bị Dawn innerHTML-replace và
+   *  #storePickupApp (do Zapiet tự inject) có thể mất vài trăm ms mới xuất
+   *  hiện lại trong DOM. */
+  async function waitFor(getter, timeout = 6000, step = 120) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      const v = getter();
+      if (v) return v;
+      await sleep(step);
+    }
+    return getter();
+  }
+
+  const widget  = () => document.getElementById('custom-pickup-widget');
+  const shop    = () => widget()?.dataset.shop ?? '';
+  const apiKey  = () => widget()?.dataset.apiKey ?? '';
+
+  // ── Native Zapiet widget accessors ─────────────────────────────────────────
+  const nativeRoot     = () => document.getElementById('storePickupApp');
+  const pickupRadio    = () => nativeRoot()?.querySelector('#pickup_radio input[type="radio"]');
+  const calendarWrap   = () => nativeRoot()?.querySelector('.Zapiet-Calendar__Wrapper');
+  const monthLabelEl   = () => calendarWrap()?.querySelector('.Zapiet-Calendar__Month > div');
+  const navPrevBtn     = () => calendarWrap()?.querySelector('.Zapiet-Calendar__Nav[aria-label="Previous Month"]');
+  const navNextBtn     = () => calendarWrap()?.querySelector('.Zapiet-Calendar__Nav[aria-label="Next Month"]');
+  const dateButtons    = () => $$('.picker__day', calendarWrap() || document.createElement('div'));
+  const isoHiddenInput = () => nativeRoot()?.querySelector('[id^="Zapiet-InputCalendar__"][id$="_ISO"]');
+  const timeListEl     = () => nativeRoot()?.querySelector('.Zapiet-Select__List, [id^="Zapiet-TimePicker"]');
+  const timeValueEl    = () => nativeRoot()?.querySelector('.Zapiet-Select__Value');
+  const timeItems      = () => $$('li', timeListEl() || document.createElement('ul'));
+
+  function nativeSelectedISO() {
+    const v = isoHiddenInput()?.value; // "2026/07/01"
+    return v ? v.replace(/\//g, '-') : null;
+  }
+
+  function nativeSelectedTimeLabel() {
+    return timeValueEl()?.textContent?.trim() || null;
+  }
+
+  // ── Formatting helpers (phải khớp CHÍNH XÁC format của Zapiet) ──────────────
+  function isoToAriaLabel(iso) {
+    const d = new Date(`${iso}T12:00:00`);
+    if (isNaN(d)) return null;
+    const wd  = WD[d.getDay()];
+    const mo  = MO[d.getMonth()];
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${wd}, ${mo} ${day}, ${d.getFullYear()}`;
+  }
+
+  function formatTime(t) {
+    // "13:00" -> "1:00 PM"  (khớp format native "9:00 AM")
+    const [h, m] = t.split(':').map(Number);
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  }
+
+  // ── Cart / REST (chỉ dùng để BUILD danh sách hiển thị, không dùng để lưu) ───
+  async function getCartItems() {
+    const res = await fetch('/cart.js');
+    const cart = await res.json();
+    return cart.items.map((i) => ({
+      variant_id: i.variant_id,
+      product_id: i.product_id,
+      quantity: i.quantity,
+    }));
+  }
+
+  async function fetchLocations() {
+    const res = await fetch(`${BASE}/pickup/locations?shop=${shop()}&api_key=${apiKey()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shoppingCart: await getCartItems() }),
+    });
+    return (await res.json()).locations ?? [];
+  }
+
+  async function fetchCalendar(locationId) {
+    const res = await fetch(`${BASE}/pickup/locations/${locationId}/calendar?shop=${shop()}&api_key=${apiKey()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shoppingCart: await getCartItems() }),
+    });
+    return res.json();
+  }
+
+  function buildAvailableDates(calendar, maxDays = 30) {
+    const { minDate, maxDate, disabled } = calendar;
+    const dates = [];
+    const disabledDates = new Set();
+    const disabledDays = new Set();
+    let allowOnly = false;
+    const allowedDates = new Set();
+
+    for (const d of disabled) {
+      if (d === true) { allowOnly = true; continue; }
+      if (typeof d === 'number') disabledDays.add(d);
+      else if (allowOnly) allowedDates.add(d);
+      else disabledDates.add(d);
+    }
+
+    let cur = new Date(minDate);
+    const max = maxDate
+      ? new Date(maxDate)
+      : (() => { const d = new Date(minDate); d.setDate(d.getDate() + maxDays); return d; })();
+
+    while (cur <= max) {
+      const iso = cur.toISOString().split('T')[0];
+      const dow = cur.getDay() + 1;
+      const isOpen = calendar.daysOfWeek[
+        ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][cur.getDay()]
+      ];
+      const pass = allowOnly
+        ? allowedDates.has(iso) || disabledDays.has(dow)
+        : !disabledDays.has(dow) && !disabledDates.has(iso) && isOpen && !isOpen?.closed;
+      if (pass) dates.push(iso);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // ── Điều khiển widget Zapiet gốc (đây là phần LƯU thật) ─────────────────────
+  async function ensurePickupMethodSelected() {
+    const radio = pickupRadio();
+    if (!radio) return false;
+    if (!radio.checked) {
+      radio.click();
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(150);
+    }
+    return true;
+  }
+
+  function parseMonthLabel(text) {
+    const [monthName, year] = text.trim().split(/\s+/);
+    return { month: MO.indexOf(monthName), year: Number(year) };
+  }
+
+  async function waitForChange(getter, prevVal, timeout = 3000, step = 60) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      const v = getter();
+      if (v !== prevVal) return v;
+      await sleep(step);
+    }
+    return getter();
+  }
+
+  async function navigateToMonth(targetYear, targetMonth) {
+    for (let i = 0; i < 24; i++) {
+      const el = monthLabelEl();
+      if (!el) return false;
+      const { month, year } = parseMonthLabel(el.textContent);
+      if (month === targetMonth && year === targetYear) return true;
+
+      const diff = (targetYear - year) * 12 + (targetMonth - month);
+      const btn = diff > 0 ? navNextBtn() : navPrevBtn();
+      if (!btn || btn.getAttribute('aria-disabled') === 'true') return false;
+
+      const prevLabel = el.textContent;
+      btn.click();
+      await waitForChange(() => monthLabelEl()?.textContent, prevLabel);
+    }
+    return false;
+  }
+
+  async function waitDateApplied(iso, timeout = 4000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      if (nativeSelectedISO() === iso) return true;
+      await sleep(80);
+    }
+    return false;
+  }
+
+  /** Chờ time list ổn định (không đổi trong 2 lần check liên tiếp) */
+  async function waitTimeListStable(timeout = 4000, step = 120) {
+    const t0 = Date.now();
+    let prevSig = null;
+    while (Date.now() - t0 < timeout) {
+      const sig = timeItems().map((li) => li.getAttribute('aria-label') || li.textContent.trim()).join('|');
+      if (sig && sig === prevSig) return true;
+      prevSig = sig;
+      await sleep(step);
+    }
+    return false;
+  }
+
+  /** Click thật vào nút ngày trong calendar gốc của Zapiet */
+  async function selectNativeDate(iso) {
+    const ok = await ensurePickupMethodSelected();
+    if (!ok) return false;
+
+    const d = new Date(`${iso}T12:00:00`);
+    const navOk = await navigateToMonth(d.getFullYear(), d.getMonth());
+    if (!navOk) return false;
+
+    const label = isoToAriaLabel(iso);
+    const btn = dateButtons().find((b) => b.getAttribute('aria-label') === label);
+    if (!btn || btn.classList.contains('picker__day--disabled') || btn.getAttribute('aria-disabled') === 'true') {
+      return false;
+    }
+
+    btn.click();
+    await waitDateApplied(iso);
+    await waitTimeListStable();
+    return true;
+  }
+
+  /** Click thật vào <li> giờ trong dropdown giờ gốc của Zapiet */
+  async function selectNativeTime(label) {
+    const li = timeItems().find((el) => (el.getAttribute('aria-label') || el.textContent.trim()) === label);
+    if (!li) return false;
+    li.click();
+    await waitForChange(() => nativeSelectedTimeLabel(), null, 2000);
+    return nativeSelectedTimeLabel() === label;
+  }
+
+  // ── UI ────────────────────────────────────────────────────────────────────
+  function setStatus(msg, state) {
+    const el = $('#pickup-status', widget());
+    if (!el) return;
+    el.textContent = msg || '';
+    if (state) el.setAttribute('data-state', state); else el.removeAttribute('data-state');
+  }
+
+  async function populateTimeSelectFromNative(timeSelect) {
+    timeSelect.innerHTML = '<option value="">SELECT</option>';
+    const items = timeItems();
+    if (!items.length) { timeSelect.disabled = true; return; }
+
+    items.forEach((li) => {
+      const label = li.getAttribute('aria-label') || li.textContent.trim();
+      const opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = label;
+      timeSelect.appendChild(opt);
+    });
+
+    const current = nativeSelectedTimeLabel();
+    if (current) timeSelect.value = current;
+    timeSelect.disabled = false;
+  }
+
+  // ── Main init ─────────────────────────────────────────────────────────────
+  async function initPickupWidget() {
+    let w = widget();
+    if (!w) return; // #custom-pickup-widget chưa tồn tại trong DOM lúc này
+
+    const dateSelect = $('#pickup-date', w);
+    const timeSelect = $('#pickup-time', w);
+    if (!dateSelect || !timeSelect) return;
+
+    if (w._pickupAbort) w._pickupAbort.abort();
+    const ac = new AbortController();
+    const sig = ac.signal;
+    w._pickupAbort = ac;
+
+    dateSelect.disabled = true;
+    timeSelect.disabled = true;
+    setStatus('Đang tải...', null);
+
+    // Cart vừa đổi (thêm sp / đổi qty) → cart-drawer có thể vừa bị Dawn
+    // innerHTML-replace, #storePickupApp do Zapiet tự inject lại nên cần
+    // chờ thay vì bail ngay, nếu không select sẽ bị disabled vĩnh viễn.
+    const root = await waitFor(nativeRoot, 6000);
+    if (sig.aborted) return; // đã có init mới hơn ghi đè
+    if (!root) {
+      setStatus('Không tìm thấy widget pickup, vui lòng mở lại giỏ hàng.', 'error');
+      return;
+    }
+
+    setStatus('', null);
+
+    // ── 1. Build danh sách ngày để hiển thị (REST, chỉ để list options) ──────
+    let location;
+    try {
+      const locs = await fetchLocations();
+      if (!locs.length) return;
+      location = locs[0];
+      const calendar = await fetchCalendar(location.id);
+      const dates = buildAvailableDates(calendar);
+
+      const prevDateVal = dateSelect.value;
+      dateSelect.innerHTML = '<option value="">SELECT</option>';
+      dates.forEach((iso) => {
+        const opt = document.createElement('option');
+        opt.value = iso;
+        opt.textContent = new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
+          weekday: 'short', month: 'long', day: 'numeric', year: 'numeric',
+        });
+        dateSelect.appendChild(opt);
+      });
+      dateSelect.disabled = false;
+
+      // Nếu native đã có sẵn ngày được chọn (VD lần trước), phản ánh lại lên UI
+      const nativeISO = nativeSelectedISO();
+      if (nativeISO && dates.includes(nativeISO)) {
+        dateSelect.value = nativeISO;
+        await populateTimeSelectFromNative(timeSelect);
+      } else if (prevDateVal && dates.includes(prevDateVal)) {
+        dateSelect.value = prevDateVal;
+      }
+    } catch (err) {
+      console.warn('[pickup] init locations/calendar:', err);
+      setStatus('Không tải được lịch pickup, vui lòng thử lại.', 'error');
+      return;
+    }
+
+    // ── 2. User chọn ngày → click thật vào calendar gốc ───────────────────────
+    dateSelect.addEventListener('change', async () => {
+      timeSelect.innerHTML = '<option value="">SELECT</option>';
+      timeSelect.disabled = true;
+      if (!dateSelect.value) return;
+
+      setStatus('Đang cập nhật...', null);
+      dateSelect.disabled = true;
+      try {
+        const ok = await selectNativeDate(dateSelect.value);
+        if (!ok) {
+          setStatus('Ngày này hiện không khả dụng, vui lòng chọn ngày khác.', 'error');
+          return;
+        }
+        await populateTimeSelectFromNative(timeSelect);
+        setStatus('', null);
+      } catch (err) {
+        console.warn('[pickup] selectNativeDate:', err);
+        setStatus('Có lỗi khi chọn ngày, vui lòng thử lại.', 'error');
+      } finally {
+        dateSelect.disabled = false;
+      }
+    }, { signal: sig });
+
+    // ── 3. User chọn giờ → click thật vào time list gốc ───────────────────────
+    timeSelect.addEventListener('change', async () => {
+      if (!timeSelect.value) return;
+      setStatus('Đang lưu...', null);
+      timeSelect.disabled = true;
+      try {
+        const ok = await selectNativeTime(timeSelect.value);
+        if (ok) {
+          setStatus('Đã lưu thời gian pickup.', 'ok');
+          document.dispatchEvent(new CustomEvent('pickup:saved', {
+            detail: { date: dateSelect.value, time: timeSelect.value },
+          }));
+        } else {
+          setStatus('Không lưu được giờ, vui lòng thử lại.', 'error');
+        }
+      } catch (err) {
+        console.warn('[pickup] selectNativeTime:', err);
+        setStatus('Có lỗi khi lưu giờ, vui lòng thử lại.', 'error');
+      } finally {
+        timeSelect.disabled = false;
+      }
+    }, { signal: sig });
+
+    // ── 4. Đồng bộ NGƯỢC: khi cart đổi khiến Zapiet tự reset/re-render,
+    //      phản ánh lại state đó lên UI custom (giải quyết bug "không reload
+    //      khi tăng qty / thêm sp" vì giờ native tự lo phần logic đó, mình
+    //      chỉ cần theo dõi & hiển thị lại) ────────────────────────────────
+    if (root && !root._pickupObserver) {
+      let lastISO = nativeSelectedISO();
+      let lastTime = nativeSelectedTimeLabel();
+
+      const observer = new MutationObserver(async () => {
+        const iso = nativeSelectedISO();
+        const time = nativeSelectedTimeLabel();
+        if (iso === lastISO && time === lastTime) return;
+        lastISO = iso;
+        lastTime = time;
+
+        if (iso && [...dateSelect.options].some((o) => o.value === iso)) {
+          dateSelect.value = iso;
+        }
+        await populateTimeSelectFromNative(timeSelect);
+      });
+      observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'value'] });
+      root._pickupObserver = observer;
+    }
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  // KHÔNG dựa vào tên custom event của theme (Dawn dùng pub/sub nội bộ trong
+  // global.js, không bắn document.dispatchEvent nên bên ngoài không bắt được).
+  // Thay vào đó dùng 2 cơ chế độc lập với theme:
+  //
+  //   A. MutationObserver trên <body>: bắt lúc cart-drawer bị Dawn innerHTML-
+  //      replace (thêm sp / xoá sp làm đổi cấu trúc DOM, kể cả từ giỏ trống).
+  //   B. Poll "chữ ký" giỏ hàng mỗi 2s: bắt lúc chỉ đổi qty (cấu trúc DOM có
+  //      thể không đổi nếu theme chỉ update text số lượng tại chỗ).
+  //
+  // Cả hai đều gọi lại initPickupWidget() một cách an toàn (idempotent nhờ
+  // AbortController hủy listener cũ trước khi gắn listener mới).
+
+  let bootBusy = false;
+  let bootTimer = null;
+  function scheduleInit(delay = 200) {
+    clearTimeout(bootTimer);
+    bootTimer = setTimeout(async () => {
+      if (bootBusy) return;
+      bootBusy = true;
+      try { await initPickupWidget(); } finally { bootBusy = false; }
+    }, delay);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => scheduleInit(0));
+
+  // A. Observer gắn vào #CartDrawer — theo cart-drawer.js/cart.js của Dawn,
+  //    MỌI thay đổi cart (đổi qty, thêm sp) đều ghi đè innerHTML của
+  //    #CartDrawer hoặc .drawer__inner bên trong nó, không có DOM event nào
+  //    được bắn ra ngoài. Quan sát trực tiếp node này gọn & chính xác hơn
+  //    observe toàn bộ <body>. Nếu #CartDrawer chưa kịp render lúc script
+  //    chạy, fallback tạm về <body> rồi tự chuyển sang #CartDrawer khi nó xuất hiện.
+  function observeCartDrawer() {
+    const target = document.getElementById('CartDrawer') || document.body;
+    const bodyObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        const node = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+        if (node && node.closest && (node.closest('#custom-pickup-widget') || node.closest('#storePickupApp'))) {
+          continue;
+        }
+        scheduleInit();
+        return;
+      }
+    });
+    bodyObserver.observe(target, { childList: true, subtree: true });
+
+    // Nếu đang fallback trên <body>, thử chuyển sang #CartDrawer khi nó xuất hiện
+    if (target === document.body) {
+      const upgrade = setInterval(() => {
+        const drawer = document.getElementById('CartDrawer');
+        if (drawer) {
+          clearInterval(upgrade);
+          bodyObserver.disconnect();
+          observeCartDrawer();
+        }
+      }, 500);
+    }
+  }
+  observeCartDrawer();
+
+  // B. Poll chữ ký giỏ hàng (variant_id:qty, ...) để bắt thay đổi số lượng
+  //    ngay cả khi DOM không thay đổi cấu trúc.
+  let lastCartSig = null;
+  setInterval(async () => {
+    try {
+      const res = await fetch('/cart.js');
+      const cart = await res.json();
+      const sig = cart.items.map((i) => `${i.variant_id}:${i.quantity}`).join(',');
+      if (lastCartSig !== null && sig !== lastCartSig) scheduleInit(300);
+      lastCartSig = sig;
+    } catch (err) {
+      // bỏ qua lỗi mạng tạm thời
+    }
+  }, 2000);
+})();
+</script>
