@@ -1,0 +1,273 @@
+{% comment %}
+  Custom Restock Notify modal (thay thế UI mặc định của CartBite).
+  Include snippet này 1 lần trong theme.liquid hoặc product.liquid:
+    {% render 'restock-modal' %}
+  CSS/JS đi kèm: assets/restock-modal.css, assets/restock-modal.js
+{% endcomment %}
+
+<div class="gw-custom-modal-overlay" id="gwCustomModal">
+  <div class="gw-custom-modal">
+    <span class="gw-close" id="gwModalClose">&times;</span>
+    <h3>Restock Email</h3>
+    <label for="gwEmailInput">メールアドレス</label>
+    <input type="email" id="gwEmailInput" class="gw-email-input" placeholder="you@example.com" autocomplete="email">
+    <div class="gw-error" id="gwErrorMsg"></div>
+    <div class="gw-success" id="gwSuccessMsg">送信されました。</div>
+    <button class="gw-submit" id="gwSubmitBtn" type="button">Send</button>
+  </div>
+</div>
+
+<style>
+  .gw-custom-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gw-custom-modal-overlay.gw-open {
+    display: flex;
+  }
+
+  .gw-custom-modal {
+    background: #faf8f4;
+    width: 90%;
+    max-width: 420px;
+    padding: 28px 32px;
+    position: relative;
+    font-family: sans-serif;
+  }
+
+  .gw-custom-modal .gw-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #666;
+    line-height: 1;
+  }
+
+  .gw-custom-modal h3 {
+    margin: 0 0 18px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .gw-custom-modal label {
+    font-size: 13px;
+    color: #333;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .gw-custom-modal input[type='email'] {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #999;
+    padding: 6px 2px;
+    font-size: 14px;
+    outline: none;
+    background: transparent;
+    box-sizing: border-box;
+  }
+
+  .gw-custom-modal .gw-error {
+    color: #c0392b;
+    font-size: 12px;
+    margin-top: 6px;
+    display: none;
+  }
+
+  .gw-custom-modal .gw-success {
+    color: #c0392b;
+    font-size: 13px;
+    margin-top: 14px;
+    padding: 6px 0;
+    border: 1px solid #c0392b;
+    text-align: center;
+    display: none;
+  }
+
+  .gw-custom-modal button.gw-submit {
+    margin-top: 20px;
+    width: 100%;
+    padding: 14px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .gw-custom-modal button.gw-submit[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
+</style>
+
+<script>
+  (function () {
+    if (window.__gwCustomModalWire) return;
+    window.__gwCustomModalWire = true;
+
+    // ---- Đợi CartBite (window.initVar) load xong rồi mới wiring ----
+    function waitForInitVar(callback) {
+      if (window.initVar && typeof window.initVar.checkEmail === 'function') {
+        callback();
+        return;
+      }
+      var tries = 0;
+      var interval = setInterval(function () {
+        tries++;
+        if (window.initVar && typeof window.initVar.checkEmail === 'function') {
+          clearInterval(interval);
+          callback();
+        } else if (tries > 100) {
+          // ~20s timeout
+          clearInterval(interval);
+          console.error('gw custom modal: initVar không load được sau 20s');
+        }
+      }, 200);
+    }
+
+    // ---- Gọi thẳng API subscribe, tự await và check status thật ----
+    // (không dùng initVar.sendSubscriptionRequest vì hàm đó không return promise
+    // của fetch, nên không thể biết request thành công hay thất bại)
+    async function sendRestockSubscription(email) {
+      var iv = window.initVar;
+      try {
+        var product = await iv.getProduct();
+        var variant = await iv.getSelectedVariant(product);
+
+        var mapping = {
+          campaignUniqueId: iv.stockFulFilledEmailCampaign.uniqueId,
+          subscriberUniqueId: iv.subscriberId,
+          email: email,
+          optInToMarketing: true,
+          subscriptionEvent: {
+            productId: Number(product.id),
+            productPrice: Number(variant.price),
+            variantId: variant.id,
+            variantPrice: Number(variant.price),
+            productTitle: product.title,
+            variantTitle: variant.title,
+            href: window.location.href,
+          },
+          locale: iv.getValueIfExist(function () {
+            return Shopify.locale;
+          }),
+        };
+
+        var res = await fetch(iv.apiUrl + '/api/subscribers/campaignMapping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mapping),
+        });
+
+        return res.ok;
+      } catch (err) {
+        console.error('gw custom modal: lỗi khi gửi subscription', err);
+        return false;
+      }
+    }
+
+    // ---- UI wiring ----
+    function initModal() {
+      var overlay = document.getElementById('gwCustomModal');
+      var closeBtn = document.getElementById('gwModalClose');
+      var emailInput = document.getElementById('gwEmailInput');
+      var errorEl = document.getElementById('gwErrorMsg');
+      var successEl = document.getElementById('gwSuccessMsg');
+      var submitBtn = document.getElementById('gwSubmitBtn');
+
+      if (!overlay || !emailInput || !submitBtn) {
+        console.error(
+          'gw custom modal: thiếu element trong DOM, kiểm tra lại snippet restock-modal.liquid đã được render chưa'
+        );
+        return;
+      }
+
+      function resetModal() {
+        emailInput.value = '';
+        emailInput.disabled = false;
+        errorEl.style.display = 'none';
+        successEl.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send';
+        submitBtn.onclick = handleSubmit;
+      }
+
+      function openModal() {
+        overlay.classList.add('gw-open');
+      }
+
+      function closeModal() {
+        overlay.classList.remove('gw-open');
+        setTimeout(resetModal, 300);
+      }
+
+      async function handleSubmit() {
+        var iv = window.initVar;
+        var email = emailInput.value.trim();
+        errorEl.style.display = 'none';
+
+        if (!iv || typeof iv.checkEmail !== 'function' || !iv.checkEmail(email)) {
+          errorEl.textContent = '正しいメールアドレスを入力してください。';
+          errorEl.style.display = 'block';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送信中...';
+
+        var ok = false;
+        try {
+          ok = await sendRestockSubscription(email);
+        } catch (err) {
+          console.error('gw custom modal submit error', err);
+        }
+
+        if (ok) {
+          emailInput.disabled = true;
+          successEl.style.display = 'block';
+          submitBtn.textContent = 'Close';
+          submitBtn.disabled = false;
+          submitBtn.onclick = closeModal;
+        } else {
+          errorEl.textContent = '送信に失敗しました。もう一度お試しください。';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send';
+        }
+      }
+
+      // Chặn click nút Notify Me gốc (trước khi CartBite mở iframe mặc định),
+      // mở modal của mình thay vào đó
+      document.addEventListener(
+        'click',
+        function (e) {
+          var trigger = e.target.closest && e.target.closest('[gw-stock-fulfilled]');
+          if (trigger) {
+            e.preventDefault();
+            e.stopPropagation();
+            openModal();
+          }
+        },
+        true
+      );
+
+      closeBtn.addEventListener('click', closeModal);
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+      });
+      submitBtn.addEventListener('click', handleSubmit);
+    }
+
+    waitForInitVar(initModal);
+  })();
+</script>
