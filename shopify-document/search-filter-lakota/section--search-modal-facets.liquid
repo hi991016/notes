@@ -1,0 +1,45 @@
+{%- comment -%}
+  sections/search-modal-facets.liquid
+  ------------------------------------------------------------
+  Section này KHÔNG hiển thị trực tiếp trên page nào cả.
+  Mục đích duy nhất: cho phép fetch AJAX qua Section Rendering API:
+
+    fetch('/collections/<handle>?section_id=search-modal-facets')
+
+  Khi request tới bằng URL của 1 collection page, Shopify sẽ render
+  section này với object `collection` đầy đủ (bao gồm .filters), dù
+  JS đang chạy ở page nào (home, /about/, product page...) cũng lấy
+  được danh sách filter Color / Last / Size như trên collection đó.
+
+  Nếu muốn đổi collection nguồn filter qua theme editor, cần add
+  section này vào 1 template ẩn (vd tạo templates/page.search-config.json
+  rồi assign cho 1 page ẩn) để setting "filter_collection" xuất hiện
+  trong Customizer. Nếu không cần đổi qua UI, để mặc định dùng
+  collection "shoes" là đủ.
+{%- endcomment -%}
+
+{%- liquid
+  assign source_collection = collections[section.settings.filter_collection]
+  if source_collection == blank
+    assign source_collection = collections['shoes']
+  endif
+  if source_collection == blank
+    assign source_collection = collection
+  endif
+-%}
+
+{% render 'search-modal-facets', results: source_collection %}
+
+{% schema %}
+{
+  "name": "Search Modal Facets",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "filter_collection",
+      "label": "Collection dùng làm nguồn filter cho search modal",
+      "info": "Mặc định fallback về collection 'shoes' nếu bỏ trống."
+    }
+  ]
+}
+{% endschema %}

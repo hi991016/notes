@@ -1,0 +1,72 @@
+{%- comment -%}
+  snippets/search-modal-facets.liquid
+  ------------------------------------------------------------
+  Render list các filter (Color / Last / Size ...) dùng cho search modal.
+  Không phải accordion như facets-custom.liquid (dùng ở collection page) -
+  ở đây hiển thị dạng cột thẳng theo đúng design (search-ui.jpg).
+
+  Params:
+    results - object có .filters (collection hoặc search object)
+{%- endcomment -%}
+
+<div class="c-search_filters_inner" data-search-filter-form>
+  <p class="c-search_filters_title">
+    {{ results.title | default: 'Filter Search' }} / Filter Search
+  </p>
+
+  <div class="c-search_filters_grid">
+    {%- for filter in results.filters -%}
+      {%- comment -%} Bỏ qua filter dạng price range / boolean, chỉ lấy list filter (Color, Last, Size...) {%- endcomment -%}
+      {%- if filter.type == 'price_range' or filter.type == 'boolean' -%}
+        {%- continue -%}
+      {%- endif -%}
+
+      <div class="c-search_filters_col" data-filter-group="{{ filter.param_name | escape }}">
+        <p class="c-search_filters_label">{{ filter.label | escape }} :</p>
+
+        <ul class="c-search_filters_list list-unstyled">
+          {%- for value in filter.values -%}
+            {%- unless value.label contains 'hidden' or value.label contains '在庫切れ' -%}
+              {%- liquid
+                assign input_id = 'SearchModalFilter-' | append: filter.param_name | escape | append: '-' | append: forloop.index
+                assign is_disabled = false
+                if value.count == 0 and value.active == false
+                  assign is_disabled = true
+                endif
+              -%}
+              <li class="c-search_filters_item{% if is_disabled %} is-disabled{% endif %}">
+                <label
+                  for="{{ input_id }}"
+                  class="c-search_filters_checkbox{% if value.active %} is-active{% endif %}"
+                >
+                  <input
+                    type="checkbox"
+                    name="{{ value.param_name }}"
+                    value="{{ value.value }}"
+                    id="{{ input_id }}"
+                    {% if value.active %}
+                      checked
+                    {% endif %}
+                    {% if is_disabled %}
+                      disabled
+                    {% endif %}
+                  >
+                  <span>{{ value.label | escape }}</span>
+                </label>
+              </li>
+            {%- endunless -%}
+          {%- endfor -%}
+        </ul>
+      </div>
+    {%- endfor -%}
+  </div>
+
+  <div class="c-search_filters_actions">
+    <button type="button" class="c-search_filters_submit" data-search-modal-submit>
+      Search
+    </button>
+    <button type="button" class="c-search_filters_clear" data-search-modal-clear>
+      Clear
+    </button>
+  </div>
+</div>

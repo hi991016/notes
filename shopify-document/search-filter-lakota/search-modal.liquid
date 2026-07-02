@@ -1,0 +1,73 @@
+{%- comment -%}
+  snippets/search-modal.liquid
+  ------------------------------------------------------------
+  Search modal mới: keyword input + filter (Color / Last / Size)
+  load bằng AJAX (xem assets/search-modal.js + sections/search-modal-facets.liquid).
+
+  Cách dùng: render snippet này trong header (thay hoặc song song với
+  search-predictive.liquid tuỳ theo m muốn giữ predictive UI cũ hay không -
+  scope hiện tại là KHÔNG dùng predictive search / suggestions).
+
+  data-filter-source-url: URL của collection dùng làm nguồn filter
+  (phải khớp với collection set trong sections/search-modal-facets.liquid)
+{%- endcomment -%}
+
+<div
+  class="c-search js-c-search"
+  data-search-modal
+  data-filter-source-url="/collections/shoes"
+  data-filter-section-id="search-modal-facets"
+>
+  <div class="c-search_container">
+    <div class="c-search_inner">
+      <div class="c-search_top">
+        <p class="c-search_title">Keyword Search</p>
+        <button
+          class="c-search_close js-btn-search"
+          type="button"
+          data-action="close-search"
+          aria-label="検索を閉じる"
+        >
+          {% render 'icon-custom' with 'search_close' %}
+        </button>
+      </div>
+
+      <div class="c-search_bar">
+        <form
+          action="{{ routes.search_url }}"
+          method="get"
+          role="search"
+          class="c-search_form"
+          data-search-modal-form
+        >
+          <span class="c-search_icon">
+            {% render 'icon-custom' with 'search' %}
+          </span>
+          <input
+            class="c-search_input"
+            type="search"
+            name="q"
+            value="{{ search.terms | escape }}"
+            placeholder="{{ 'general.search.search' | t }}"
+            autocomplete="off"
+          >
+          <input type="hidden" name="type" value="product">
+          <input type="hidden" name="options[prefix]" value="last">
+        </form>
+      </div>
+
+      <div
+        class="c-search_filters"
+        data-search-filter-container
+        aria-live="polite"
+      >
+        {%- comment -%}
+          Filter list (Color / Last / Size) sẽ được inject vào đây bằng JS
+          khi modal mở lần đầu. Xem loadFilters() trong search-modal.js.
+        {%- endcomment -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ 'search-modal.js' | asset_url }}" defer="defer"></script>
