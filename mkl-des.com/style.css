@@ -1,0 +1,369 @@
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+a {
+    color: inherit;
+    text-decoration: none;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+@font-face {
+    font-family: 'BeVietnam';
+    src: url('../assets/fonts/BeVietnam/BeVietnam-Regular.ttf') format('truetype');
+    font-weight: normal; /* Maps to 400 */
+    font-style: normal;
+    font-display: swap; 
+}
+
+@font-face {
+    font-family: 'BeVietnam';
+    src: url('../assets/fonts/BeVietnam/BeVietnam-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap; 
+}
+
+.scroll-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none; 
+}
+
+
+.scroll-container {
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+:root {
+    --primary-text-color: #000000;
+    --hover-text-color: #BEBEBE;
+    color: var(--primary-text-color);
+    font-family: "BeVietnam", sans-serif;
+}
+
+body {
+    overflow: hidden;
+}
+
+nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    box-sizing: border-box;
+    align-items: center;
+    background: white;
+    z-index: 100;
+}
+
+nav a {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+main {
+    padding: 2rem 0 2rem 1.5rem;
+    height: 100dvh;
+    display: flex;
+    align-items: end;
+    box-sizing: border-box;
+}
+
+#main-text {
+    position: absolute;
+    top: calc(90.13px - 1.5rem);
+    right: 1.5rem;
+    font-size: 16rem;
+    font-weight: bold;
+    letter-spacing: -0.05em;
+}
+
+#main-text span {
+    display: inline-block;
+    margin-left: 1rem;
+    width: 30px;
+    height: 30px;
+    background-color: var(--primary-text-color);
+}
+
+.projects-container {
+    display: flex;
+    gap: .5rem;
+    max-width: 100dvw;
+    overflow: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    cursor: url("https://cristianoliva-studio.com/wp-content/themes/cristianoliva/dist/bundle/5bf4702b96daeb154898.svg") 0 0, auto;
+}
+
+.projects-container::-webkit-scrollbar {
+    display: none;
+}
+
+.projects {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    justify-content: end;
+}
+
+.projects span {
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 110%;
+    letter-spacing: -0.72px;
+    text-transform: uppercase;
+}
+
+.image-group {
+   display: flex;
+   align-items: end;
+   gap: .5rem;
+}
+
+img {
+    position: relative;
+    z-index: 100;
+    user-select: none;
+    transition: width .5s;
+}
+
+#EU-Film-Festival {
+    width: 236px;
+}
+
+#EVSDA {
+    width: 235px;
+}
+
+#Airmaxday {
+    width: 236px;
+}
+
+#Inca-Gifset {
+    width: 355px;
+}
+
+#Metropole-2021 {
+    width: 235px;
+}
+
+#Metropole-2023 {
+    width: 355px;
+}
+
+#Lotte-Mooncake {
+    width: 236px;
+}
+
+#Cat-Tuong-Giftset {
+    width: 235px;
+}
+
+#ZENIA {
+    width: 235px;
+}
+
+#Hateco {
+    width: 235px;
+}
+
+#NK-Properties {
+    width: 235px;
+}
+
+#Thuan-An {
+    width: 355px;
+}
+
+#Vietcombank-Calendar-2026 {
+    width: 235px;
+}
+
+#Sumimoto-Calendar-2024 {
+    width: 236px;
+}
+
+#Vietcombank-Annual-Report {
+    width: 235px;
+}
+
+#MBBank-Annual-Report {
+    width: 235px;
+}
+
+#Sodick-Calendar-2021 {
+    width: 355px;
+}
+
+@media screen and (max-width: 979px) {
+    main {
+        padding: 2rem 0 2rem 10px;
+    }
+
+    nav {
+        padding: 1rem 10px;
+    }
+
+    nav a {
+        font-size: 1.125rem;
+    }
+
+    #logo {
+        width: 60px;
+    }
+
+    .projects span {
+        font-size: 1.125rem;
+    }
+
+    .image-group {
+        gap: 10px
+    }
+
+    #main-text {
+        right: auto;
+        font-size: 12rem;
+        width: 100dvw;
+    }
+
+    #main-text span {
+        width: 25px;
+        height: 25px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    #main-text {
+        font-size: 7rem;
+    }
+
+    #main-text span {
+        width: 15px;
+        height: 15px;
+        margin-left: .5rem;
+    }
+
+    #EU-Film-Festival {
+        width: 206px;
+    }
+
+    #EVSDA {
+        width: 206px;
+    }
+
+    #Airmaxday {
+        width: 206px;
+    }
+
+    #Inca-Gifset {
+        width: 310px;
+    }
+
+    #Metropole-2021 {
+        width: 206px;
+    }
+
+    #Metropole-2023 {
+        width: 310px;
+    }
+
+    #Lotte-Mooncake {
+        width: 206px;
+    }
+
+    #Cat-Tuong-Giftset {
+        width: 206px;
+    }
+    
+    #ZENIA {
+        width: 206px;
+    }
+    
+    #Hateco {
+        width: 206px;
+    }
+    
+    #NK-Properties {
+        width: 206px;
+    }
+    
+    #Thuan-An {
+        width: 310px;
+    }
+    
+    #Vietcombank-Calendar-2026 {
+        width: 206px;
+    }
+    
+    #Sumimoto-Calendar-2024 {
+        width: 206px;
+    }
+    
+    #Vietcombank-Annual-Report {
+        width: 206px;
+    }
+    
+    #MBBank-Annual-Report {
+        width: 206px;
+    }
+    
+    #Sodick-Calendar-2021 {
+        width: 310px;
+    }
+}
+
+@media screen and (max-width: 350px) {
+    #main-text {
+        font-size: 6.45rem;
+    }
+
+    #main-text span {
+        width: 15px;
+        height: 15px;
+    }
+}
